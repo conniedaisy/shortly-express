@@ -32,7 +32,8 @@ h1 {
 }
 
 .navigation .logout {
-  float: right;
+  position: absolute;
+  right: 0px;
 }
 
 .navigation li a , .logout {

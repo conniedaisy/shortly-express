@@ -10,6 +10,7 @@ var User = require('./app/models/user');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
+var session = require('express-session');
 
 var app = express();
 
@@ -20,28 +21,38 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'ASDF',
+  resave: true,
+  saveUninitialized: true,
+}));
 app.use(express.static(__dirname + '/public'));
 
+// authentication and authorization middleware
+var auth = function(req, res, next) {
+  if (req.session && req.session.loggedIn === true) {
+    return next();
+  } else {
+    res.writeHead(302, {'Location': '/login'});
+    return res.end();
+  }
+};
 
-app.get('/', 
-function(req, res) {
+app.get('/', auth, function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
+app.get('/create', auth, function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
-function(req, res) {
+app.get('/links', auth, function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
-function(req, res) {
+app.post('/links', auth, function(req, res) {
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
@@ -76,6 +87,50 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/login', function(req, res) {
+  req.session.loggedIn = false;
+  res.render('login');
+});
+
+app.post('/login', function(req, res) {
+  if (req.body.username && req.body.password) {
+    new User({username: req.body.username}).fetch().then(function (model) {
+      if (model && (model.checkPassword(req.body.password))) {
+        req.session.loggedIn = true;
+        res.writeHead(302, {'Location': '/'});
+        res.end();
+      } else {
+        res.writeHead(302, {'Location': '/login'});
+        res.end();
+      }
+    });
+  } else {
+    res.end();
+  }
+
+});
+
+app.get('/signup', function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', function(req, res) {
+  if (req.body.username && req.body.password) {
+    // TODO: check if username already exists in table
+    Users.create({
+      username: req.body.username,
+      password: req.body.password
+    })
+    .then(function() {
+      req.session.loggedIn = true;
+      res.writeHead(302, {'Location': '/'});
+      return res.end();
+    });
+  } else {
+    res.send('invalid username/password');
+    res.end();
+  }
+});
 
 
 /************************************************************/
