@@ -1,4 +1,28 @@
+<script>
+function getUrlVars() {
+  var vars = {}, hash;
+  var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+  for(var i = 0; i < hashes.length; i++) {
+    hash = hashes[i].split('=');
+    vars[hash[0]] = hash[1];
+  }
+  return vars; // [autherror, true, facebook, true]
+};
+window.onload = function() {
+  var queryStuff = getUrlVars();
+  if (queryStuff.autherror) {
+    if (queryStuff.github) {
+      $('#loginError').text('Failed to Login with GitHub!');
+    } else if (queryStuff.facebook) {
+      $('#loginError').text('Failed to Login with Facebook!');
+    } else {
+      $('#loginError').text('Failed to Login!');
+    }
+  }
+};
+</script>
 <h2>Login</h2>
+<span id="loginError"></span>
 <form action="/login" method="post">
     <div>
       <label for="username">Username:</label>
@@ -15,3 +39,6 @@
 <p>
   <a href="/signup">Create an Account &rarr;</a>
 <p>
+  <a href="/auth/github">Login using GitHub &rarr;</a>
+<p>
+  <a href="/auth/facebook">Login using Facebook &rarr;</a>

@@ -14,6 +14,7 @@ var session = require('express-session');
 
 var passport = require('passport'); 
 var GithubStrategy = require('passport-github2').Strategy;
+var FacebookStrategy = require('passport-facebook').Strategy;
 
 var app = express();
 app.use(session({
@@ -40,6 +41,16 @@ passport.use(new GithubStrategy({
   // console.log(profile);
   return done(null, profile);
 }));    
+
+passport.use(new FacebookStrategy({
+  clientID: 'GET YOUR OWN',
+  clientSecret: 'GET YOUR OWN',
+  callbackURL: 'http://127.0.0.1:4568/auth/facebook/callback'
+},
+  function(accessToken, refreshToken, profile, done) {
+    return done(null, profile);
+  }
+));
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -115,11 +126,24 @@ app.get('/auth/github',
 );
 
 app.get('/auth/github/callback', 
-  passport.authenticate('github', { failureRedirect: '/login' }),
+  passport.authenticate('github', { failureRedirect: '/login?autherror=true&github=true' }),
   function(req, res) {
     // Successful authentication, redirect home.
     res.redirect('/');
-  });
+  }
+);
+
+app.get('/auth/facebook',
+  passport.authenticate('facebook')
+);
+
+app.get('/auth/facebook/callback', 
+  passport.authenticate('facebook', { failureRedirect: '/login?autherror=true&facebook=true' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/');
+  }
+);
 
 app.get('/login', function(req, res) {
   res.render('login');
@@ -133,7 +157,7 @@ app.post('/login', function(req, res) {
         res.writeHead(302, {'Location': '/'});
         res.end();
       } else {
-        res.writeHead(302, {'Location': '/login'});
+        res.writeHead(302, {'Location': '/login?autherror=true'});
         res.end();
       }
     });
