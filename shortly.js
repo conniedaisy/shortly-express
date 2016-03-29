@@ -12,7 +12,34 @@ var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 var session = require('express-session');
 
+var passport = require('passport'); 
+var GithubStrategy = require('passport-github2').Strategy;
+
 var app = express();
+app.use(session({
+  secret: 'ASDF',
+  resave: true,
+  saveUninitialized: true,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.use(new GithubStrategy({
+  clientID: 'GET YOUR OWN',
+  clientSecret: 'GET YOUR OWN',
+  callbackURL: 'http://127.0.0.1:4568/auth/github/callback'
+}, function(accessToken, refreshToken, profile, done) {
+  // console.log(profile);
+  return done(null, profile);
+}));    
 
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
@@ -21,16 +48,12 @@ app.use(partials());
 app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({
-  secret: 'ASDF',
-  resave: true,
-  saveUninitialized: true,
-}));
 app.use(express.static(__dirname + '/public'));
 
 // authentication and authorization middleware
 var auth = function(req, res, next) {
-  if (req.session && req.session.loggedIn === true) {
+  // if (req.session && req.session.loggedIn === true) {
+  if (req.isAuthenticated() || (req.session && req.session.loggedIn === true)) {
     return next();
   } else {
     res.writeHead(302, {'Location': '/login'});
@@ -87,8 +110,18 @@ app.post('/links', auth, function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+app.get('/auth/github',
+  passport.authenticate('github', { scope: [ 'user:email' ] })
+);
+
+app.get('/auth/github/callback', 
+  passport.authenticate('github', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/');
+  });
+
 app.get('/login', function(req, res) {
-  req.session.loggedIn = false;
   res.render('login');
 });
 
@@ -107,7 +140,14 @@ app.post('/login', function(req, res) {
   } else {
     res.end();
   }
+});
 
+app.get('/logout', function(req, res) {
+  req.logout();
+  if (req.session.loggedIn === true) {
+    req.session.loggedIn = false;
+  }
+  res.redirect('/login');
 });
 
 app.get('/signup', function(req, res) {

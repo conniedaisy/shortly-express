@@ -34,7 +34,7 @@ window.Shortly = Backbone.View.extend({
 
   renderLogoutView: function(e) {
     e && e.preventDefault();
-    this.router.navigate('/login', { trigger: true });
+    this.router.navigate('/logout', { trigger: true });
   },
 
   updateNav: function(routeName) {
